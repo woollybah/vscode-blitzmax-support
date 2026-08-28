@@ -134,6 +134,12 @@ export function isBuildFileLocked( definition: BmxBuildTaskDefinition | undefine
 	return !!definition && !!definition.source && definition.source !== '${file}'
 }
 
+export function workspaceFolderVariable( workspace: vscode.WorkspaceFolder ): string {
+	const folders = vscode.workspace.workspaceFolders
+	if ( folders && folders.length > 1 ) return '${workspaceFolder:' + workspace.name + '}'
+	return '${workspaceFolder}'
+}
+
 // The build task remains the single source of truth. The language server cannot
 // expand VS Code task variables itself, so pass it an absolute path only when
 // the task names a stable build file. An empty path means "follow the active
@@ -142,7 +148,21 @@ export function lockedBuildSourcePath( workspace: vscode.WorkspaceFolder | undef
 	if ( !workspace ) return ''
 	const definition = getBuildDefinitionFromWorkspace( workspace )
 	if ( !isBuildFileLocked( definition ) ) return ''
-	let source = definition.source.replace( /\$\{workspaceFolder\}/g, workspace.uri.fsPath )
+	let unresolvedVariable = false
+	let source = definition.source.replace( /\$\{workspaceFolder(?::([^}]+))?\}/g, ( original, folderName: string | undefined ) => {
+		let sourceWorkspace = workspace
+		if ( folderName ) {
+			const folders = vscode.workspace.workspaceFolders
+			const namedWorkspace = folders ? folders.find( folder => folder.name === folderName ) : undefined
+			if ( !namedWorkspace ) {
+				unresolvedVariable = true
+				return original
+			}
+			sourceWorkspace = namedWorkspace
+		}
+		return sourceWorkspace.uri.fsPath
+	} )
+	if ( unresolvedVariable ) return ''
 	if ( source.includes( '${' ) ) return ''
 	if ( !path.isAbsolute( source ) ) source = path.resolve( workspace.uri.fsPath, source )
 	if ( path.extname( source ).toLowerCase() !== '.bmx' ) return ''

@@ -10,7 +10,8 @@ import {
 	BmxBuildTaskDefinition,
 	makeTaskDefinition,
 	getFirstBlitzMaxWorkspace,
-	isBuildFileLocked
+	isBuildFileLocked,
+	workspaceFolderVariable
 } from './taskprovider'
 
 let CurrentWorkspace: vscode.WorkspaceFolder | undefined = undefined
@@ -57,7 +58,7 @@ export function registerBuildTreeProvider( context: vscode.ExtensionContext ) {
 
 		// Figure out relative path if we have a workspace
 		if ( workspace ) // we could use path.join here, but I think / looks better in json
-			sourcePath = '${workspaceFolder}' + '/' + path.relative( workspace.uri.fsPath, sourcePath )
+			sourcePath = workspaceFolderVariable( workspace ) + '/' + path.relative( workspace.uri.fsPath, sourcePath ).split( path.sep ).join( '/' )
 
 		// Update task
 		let definition = getBuildDefinitionFromWorkspace( workspace )
