@@ -9,7 +9,8 @@ import {
 	internalBuildDefinition,
 	BmxBuildTaskDefinition,
 	makeTaskDefinition,
-	getFirstBlitzMaxWorkspace
+	getFirstBlitzMaxWorkspace,
+	isBuildFileLocked
 } from './taskprovider'
 
 let CurrentWorkspace: vscode.WorkspaceFolder | undefined = undefined
@@ -59,9 +60,23 @@ export function registerBuildTreeProvider( context: vscode.ExtensionContext ) {
 			sourcePath = '${workspaceFolder}' + '/' + path.relative( workspace.uri.fsPath, sourcePath )
 
 		// Update task
-		const definition = getBuildDefinitionFromWorkspace( CurrentWorkspace )
+		let definition = getBuildDefinitionFromWorkspace( workspace )
+		if ( definition === internalBuildDefinition ) definition = Object.assign( {}, definition )
 		definition.source = sourcePath
-		saveAsDefaultTaskDefinition( definition, CurrentWorkspace )
+		saveAsDefaultTaskDefinition( definition, workspace )
+		bmxBuildTreeProvider.refresh()
+		vscode.window.showInformationMessage( `Build file locked to ${path.basename( sourcePath )}.` )
+	} ) )
+
+	context.subscriptions.push( vscode.commands.registerCommand( 'blitzmax.unlockSourceFile', () => {
+		const document = vscode.window.activeTextEditor?.document
+		const workspace = ( document ? vscode.workspace.getWorkspaceFolder( document.uri ) : undefined ) || CurrentWorkspace
+		let definition = getBuildDefinitionFromWorkspace( workspace )
+		if ( definition === internalBuildDefinition ) definition = Object.assign( {}, definition )
+		definition.source = '${file}'
+		saveAsDefaultTaskDefinition( definition, workspace )
+		bmxBuildTreeProvider.refresh()
+		vscode.window.showInformationMessage( 'Build file unlocked. BlitzMax will build the active editor file.' )
 	} ) )
 
 	context.subscriptions.push( vscode.commands.registerCommand( 'blitzmax.toggleBuildOption', async ( option: any ) => {
@@ -113,7 +128,9 @@ export class BmxBuildTreeProvider implements vscode.TreeDataProvider<vscode.Tree
 	}
 
 	refresh() {
-		vscode.commands.executeCommand( 'setContext', 'blitzmax:debugging', getBuildDefinitionFromWorkspace( CurrentWorkspace ).debug )
+		const definition = getBuildDefinitionFromWorkspace( CurrentWorkspace )
+		vscode.commands.executeCommand( 'setContext', 'blitzmax:debugging', definition.debug )
+		vscode.commands.executeCommand( 'setContext', 'blitzmax:buildFileLocked', isBuildFileLocked( definition ) )
 		this._onDidChangeTreeData.fire( null )
 	}
 
@@ -211,10 +228,20 @@ export class BmxBuildTreeProvider implements vscode.TreeDataProvider<vscode.Tree
 	generateAllBuildCategories(): Promise<vscode.TreeItem[]> {
 
 		const def = getBuildDefinitionFromWorkspace( CurrentWorkspace )
+		const buildFileLocked = isBuildFileLocked( def )
+		const buildFile = this.createChildItem(
+			true,
+			'root_file',
+			'Build File',
+			'Controls which `.bmx` file is used by Build, Build and Run, and debugging. Compatible language servers also use a locked file as the project-analysis root.  \nWhen unlocked, BlitzMax builds the active editor file. Lock a file to always use it as the application root.',
+			buildFileLocked ? def.source + ' (locked)' : 'Active editor file (unlocked)'
+		)
+		buildFile.iconPath = new vscode.ThemeIcon( buildFileLocked ? 'lock' : 'unlock' )
+		vscode.commands.executeCommand( 'setContext', 'blitzmax:buildFileLocked', buildFileLocked )
 
 		this.buildCategories = [
 			// No category root items
-			this.createChildItem( true, 'root_file', 'Source File', "Absolute path to root source file  \n`bmk <source>`  \n[More info](https://blitzmax.org/docs/en/tools/bmk/#command-line-syntax)", def.source ),
+			buildFile,
 
 			{ id: 'build', label: 'Build Options', collapsibleState: vscode.TreeItemCollapsibleState.Expanded },
 			{ id: 'app', label: 'App Options', collapsibleState: vscode.TreeItemCollapsibleState.Expanded },
@@ -360,7 +387,7 @@ export async function toggleBuildOptions( definition: BmxBuildTaskDefinition | u
 		case 'root_file':
 			await vscode.window.showInputBox(
 				{
-					prompt: 'Absolute path to root source file',
+					prompt: 'Build root source file. Clear this value to build the active editor file.',
 					value: definition.source != '${file}'
 						? definition.source
 						: vscode.window.activeTextEditor?.document.uri.fsPath
