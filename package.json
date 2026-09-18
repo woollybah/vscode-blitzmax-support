@@ -38,6 +38,7 @@
 		"compile": "tsc -p ./src",
 		"test:esp32-boards": "npm run compile && node tests/esp32boards.test.js",
 		"test:esp32-options": "npm run compile && node tests/esp32boards.test.js && node tests/esp32task.test.js",
+		"test:workspace-sdk": "npm run compile && node tests/workspace-sdk-docs.test.js && node tests/workspace-sdk-formatter.test.js",
 		"lint": "eslint src --ext ts",
 		"watch": "tsc -watch -p ./src",
 		"compile-web": "webpack --config ./build/web-extension.webpack.config.js",
@@ -276,7 +277,7 @@
 				},
 				"blitzmax.base.path": {
 					"type": "string",
-					"description": "Absolute path to BlitzMax root.",
+					"markdownDescription": "Absolute path to the BlitzMax SDK root. You can override this in a workspace's `.vscode/settings.json`, or separately in each folder of a multi-root workspace. Builds use the SDK of the source file's folder. To run a language server from each folder's SDK, also enable #blitzmax.lsp.multi# and reload VS Code.",
 					"scope": "machine-overridable"
 				},
 				"blitzmax.pref.showProblemsOnBuildError": {
@@ -322,7 +323,7 @@
 				"blitzmax.lsp.hotReload": {
 					"type": "boolean",
 					"default": false,
-					"markdownDescription": "Restart the language server when its binary changes on disk, for when you are building the server yourself.  \n*(only supported on Linux)*",
+					"markdownDescription": "Restart the language server when its binary changes on disk, for when you are building the server yourself.  \n*(only supported on Linux and macOS)*",
 					"scope": "machine-overridable"
 				},
 				"blitzmax.lsp.buildMode": {

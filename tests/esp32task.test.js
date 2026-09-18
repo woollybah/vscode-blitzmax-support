@@ -64,6 +64,14 @@ async function main() {
 	assert(!withoutBoard.includes('-board'))
 	const advanced = await toggleBuildOptions({ ...base }, 'adv_no_auto_superstrict')
 	assert.strictEqual(advanced.noAutoSuperStrict, true)
+	const folderA = { uri: { fsPath: '/projects/a' } }
+	const folderB = { uri: { fsPath: '/projects/b' } }
+	vscode.workspace.getWorkspaceFolder = uri => uri.fsPath.startsWith('/projects/a/') ? folderA : folderB
+	vscode.workspace.getConfiguration = (_, folder) => ({ get: () => folder === folderA ? '/sdk/a' : '/sdk/b' })
+	const taskA = makeTask({ ...base, bmk: undefined, source: '/projects/a/main.bmx' })
+	const taskB = makeTask({ ...base, bmk: undefined, source: '/projects/b/main.bmx' })
+	assert.strictEqual((await taskA.execution.callback(taskA.definition)).cmd, '/sdk/a/bin/bmk')
+	assert.strictEqual((await taskB.execution.callback(taskB.definition)).cmd, '/sdk/b/bin/bmk')
 
 	const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'blitzmax-esp32-picker-'))
 	try {

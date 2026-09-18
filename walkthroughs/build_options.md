@@ -41,8 +41,7 @@ The ESP32 section controls the managed heap size and SRAM/PSRAM region, plus
 optional upload through ESP-IDF. **Build and Run** uploads and starts embedded
 firmware; the BlitzMax desktop debugger is not used for these targets. Tool
 paths and the serial port remain configured through the ESP32/BlitzMax
-environment. **No Auto SuperStrict** is available in Advanced Options for NG
-builds and passes `-nas` to `bmk`.
+environment.
 
 # Locking the build file
 
