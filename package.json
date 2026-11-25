@@ -419,7 +419,7 @@
 				"blitzmax.format.indent": {
 				"type": "boolean",
 				"default": true,
-				"markdownDescription": "Indent parsed block bodies using the editor's tab size and spaces-or-tabs setting. Example: `Function Show()` ↵ `Print value` becomes `Function Show()` ↵ `····Print value` (each `·` represents a space). Comments, directives, multiline text, and continuation lines keep their existing indentation.",
+					"markdownDescription": "Indent parsed block bodies and standalone comments using the editor's tab size and spaces-or-tabs setting. Example: `Type TExample` ↵ `' note` ↵ `Method Run()` becomes `Type TExample` ↵ `····' note` ↵ `····Method Run()` (each `·` represents a space). `Rem` blocks move together, keeping their internal spacing. Directives, multiline strings, and continuation lines keep their existing indentation.",
 				"scope": "resource"
 				},
 				"blitzmax.format.trimTrailingWhitespace": {
